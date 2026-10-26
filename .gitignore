@@ -1,0 +1,35 @@
+
+# Vagrant
+.vagrant/
+
+# Ansible
+*.retry
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Docker y variables de entorno
+.env
+.env.*
+!.env.example
+
+# Claves privadas y credenciales
+*.pem
+*.key
+id_rsa
+id_ed25519
+secrets.yml
+vault-password.txt
+
+# Archivos temporales y del editor
+*.tmp
+*.swp
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
