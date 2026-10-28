@@ -1,0 +1,63 @@
+
+---
+- name: Instalar Docker en todos los nodos Big Data
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Actualizar paquetes
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Instalar dependencias
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+
+    - name: Crear directorio para las claves
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Descargar clave oficial de Docker
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Obtener arquitectura
+      ansible.builtin.command: dpkg --print-architecture
+      register: arquitectura
+      changed_when: false
+
+    - name: Obtener version de Ubuntu
+      ansible.builtin.shell: . /etc/os-release && echo "$VERSION_CODENAME"
+      register: version_ubuntu
+      changed_when: false
+
+    - name: Configurar repositorio de Docker
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ arquitectura.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ version_ubuntu.stdout }} stable"
+        filename: docker
+        state: present
+        update_cache: true
+
+    - name: Instalar Docker y Docker Compose
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Activar Docker al iniciar
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
