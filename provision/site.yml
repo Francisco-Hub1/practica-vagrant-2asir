@@ -1,8 +1,11 @@
 
 ---
-- name: Instalar Docker en todos los nodos Big Data
+- name: Desplegar infraestructura Big Data
   hosts: all
   become: true
+
+  vars:
+    proyecto: /opt/bigdata
 
   tasks:
     - name: Actualizar paquetes
@@ -17,7 +20,7 @@
           - curl
         state: present
 
-    - name: Crear directorio para las claves
+    - name: Crear directorio para claves
       ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
@@ -56,8 +59,64 @@
           - docker-compose-plugin
         state: present
 
-    - name: Activar Docker al iniciar
+    - name: Activar Docker
       ansible.builtin.service:
         name: docker
         state: started
         enabled: true
+
+    - name: Crear directorio del proyecto
+      ansible.builtin.file:
+        path: "{{ proyecto }}"
+        state: directory
+        mode: "0755"
+
+    - name: Crear directorio de datos del NameNode
+      ansible.builtin.file:
+        path: "{{ proyecto }}/namenode"
+        state: directory
+        mode: "0777"
+      when: inventory_hostname == "nodo1"
+
+    - name: Crear directorio de datos del DataNode
+      ansible.builtin.file:
+        path: "{{ proyecto }}/datanode"
+        state: directory
+        mode: "0777"
+      when: inventory_hostname in ["nodo2", "nodo3"]
+
+    - name: Copiar Docker Compose
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../docker-compose.yml"
+        dest: "{{ proyecto }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Copiar configuracion Hadoop
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../hadoop.env"
+        dest: "{{ proyecto }}/hadoop.env"
+        mode: "0644"
+
+    - name: Copiar programa Spark
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../reparto.py"
+        dest: "{{ proyecto }}/reparto.py"
+        mode: "0644"
+
+    - name: Arrancar servicios del nodo1
+      ansible.builtin.command:
+        cmd: docker compose --profile nodo1 up -d
+        chdir: "{{ proyecto }}"
+      when: inventory_hostname == "nodo1"
+
+    - name: Arrancar servicios del nodo2
+      ansible.builtin.command:
+        cmd: docker compose --profile nodo2 up -d
+        chdir: "{{ proyecto }}"
+      when: inventory_hostname == "nodo2"
+
+    - name: Arrancar servicios del nodo3
+      ansible.builtin.command:
+        cmd: docker compose --profile nodo3 up -d
+        chdir: "{{ proyecto }}"
+      when: inventory_hostname == "nodo3"

@@ -1,45 +1,130 @@
+
 services:
   namenode:
+    profiles: ["nodo1"]
     image: apache/hadoop:3.3.6
     container_name: namenode
     hostname: namenode
-    env_file: ./hadoop.env
-    command: ["/bin/bash","-c","hdfs namenode -format -nonInteractive && hdfs namenode"]
-    ports: ["9870:9870"]
-
-  datanode1:
-    image: apache/hadoop:3.3.6
-    container_name: datanode1
-    hostname: datanode1
-    env_file: ./hadoop.env
-    command: ["hdfs","datanode"]
-    depends_on: [namenode]
-
-  datanode2:
-    image: apache/hadoop:3.3.6
-    container_name: datanode2
-    hostname: datanode2
-    env_file: ./hadoop.env
-    command: ["hdfs","datanode"]
-    depends_on: [namenode]
+    network_mode: host
+    env_file:
+      - ./hadoop.env
+    extra_hosts:
+      - "nodo1:192.168.56.10"
+      - "nodo2:192.168.56.11"
+      - "nodo3:192.168.56.12"
+    volumes:
+      - /opt/bigdata/namenode:/data/dfs/name
+    command:
+      - /bin/bash
+      - -c
+      - |
+        if [ ! -f /data/dfs/name/current/VERSION ]; then
+          hdfs namenode -format -nonInteractive
+        fi
+        exec hdfs namenode
+    restart: unless-stopped
 
   spark-master:
+    profiles: ["nodo1"]
     image: apache/spark:3.5.3-python3
     container_name: spark-master
     hostname: spark-master
-    command: ["/opt/spark/bin/spark-class","org.apache.spark.deploy.master.Master"]
-    ports: ["8080:8080"]
+    extra_hosts:
+      - "spark-master:192.168.56.10"
+    network_mode: host
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - 192.168.56.10
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    volumes:
+      - /opt/bigdata/reparto.py:/opt/spark-app/reparto.py:ro
+    restart: unless-stopped
+
+  datanode1:
+    profiles: ["nodo2"]
+    image: apache/hadoop:3.3.6
+    container_name: datanode1
+    hostname: datanode1
+    network_mode: host
+    env_file:
+      - ./hadoop.env
+    environment:
+      HDFS-SITE.XML_dfs.datanode.hostname: "192.168.56.11"
+    volumes:
+      - datanode1-data:/data/dfs/data
+    command: ["hdfs", "datanode"]
+    restart: unless-stopped
 
   spark-worker1:
+    profiles: ["nodo2"]
     image: apache/spark:3.5.3-python3
     container_name: spark-worker1
     hostname: spark-worker1
-    command: ["/opt/spark/bin/spark-class","org.apache.spark.deploy.worker.Worker","spark://spark-master:7077","--memory","1g","--cores","1"]
-    depends_on: [spark-master]
+    extra_hosts:
+      - "spark-worker1:192.168.56.11"
+      - "spark-master:192.168.56.10"
+    network_mode: host
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://192.168.56.10:7077
+      - --host
+      - 192.168.56.11
+      - --port
+      - "7078"
+      - --webui-port
+      - "8081"
+      - --memory
+      - 1g
+      - --cores
+      - "1"
+    restart: unless-stopped
+
+  datanode2:
+    profiles: ["nodo3"]
+    image: apache/hadoop:3.3.6
+    container_name: datanode2
+    hostname: datanode2
+    network_mode: host
+    env_file:
+      - ./hadoop.env
+    environment:
+      HDFS-SITE.XML_dfs.datanode.hostname: "192.168.56.12"
+    volumes:
+      - datanode2-data:/data/dfs/data
+    command: ["hdfs", "datanode"]
+    restart: unless-stopped
 
   spark-worker2:
+    profiles: ["nodo3"]
     image: apache/spark:3.5.3-python3
     container_name: spark-worker2
     hostname: spark-worker2
-    command: ["/opt/spark/bin/spark-class","org.apache.spark.deploy.worker.Worker","spark://spark-master:7077","--memory","1g","--cores","1"]
-    depends_on: [spark-master]
+    extra_hosts:
+      - "spark-worker2:192.168.56.12"
+      - "spark-master:192.168.56.10"
+    network_mode: host
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://192.168.56.10:7077
+      - --host
+      - 192.168.56.12
+      - --port
+      - "7079"
+      - --webui-port
+      - "8082"
+      - --memory
+      - 1g
+      - --cores
+      - "1"
+    restart: unless-stopped
+
+volumes:
+  datanode1-data:
+  datanode2-data:
