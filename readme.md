@@ -138,8 +138,8 @@ Establecer la replicación:
 
 ```bash
 vagrant ssh nodo1 -c "sudo docker exec namenode hdfs dfs -setrep -w 2 /user/prueba/entrada/datos.txt"
+vagrant ssh nodo1 -c "sudo docker exec namenode hdfs dfs -setrep -R -w 2 /user/prueba/salida"
 ```
-
 Comprobar los bloques y sus ubicaciones:
 
 ```bash
