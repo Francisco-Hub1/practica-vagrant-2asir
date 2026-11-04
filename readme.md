@@ -231,4 +231,7 @@ Para verificar el estado general del clúster:
 Se ha desplegado un clúster Big Data distribuido con tres máquinas virtuales. Hadoop HDFS almacena los datos distribuidos entre dos DataNodes y Spark ejecuta trabajos repartidos entre dos Workers.
 
 Se ha comprobado el funcionamiento de la infraestructura, la ejecución distribuida del trabajo de prueba y la replicación de los datos en ambos DataNodes.
-fin
+
+## Repositorio GitHub
+
+https://github.com/Francisco-Hub1/practica-vagrant-2asir
