@@ -33,3 +33,9 @@ vault-password.txt
 .idea/
 .DS_Store
 Thumbs.db
+monitoring/alertmanager/telegram-token
+
+# Copias antiguas y archivos temporales de la práctica
+docker-compose-p1-backup.yml
+docker-compose.yml.p1-backup
+*practica1.zip

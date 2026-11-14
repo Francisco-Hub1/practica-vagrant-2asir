@@ -1,0 +1,43 @@
+---
+- name: Crear directorio del proyecto
+  ansible.builtin.file:
+    path: "{{ proyecto }}"
+    state: directory
+    mode: "0755"
+
+- name: Copiar Docker Compose a los nodos
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../docker-compose.yml"
+    dest: "{{ proyecto }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Copiar configuración de monitorización al nodo1
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/"
+    dest: "{{ proyecto }}/monitoring/"
+    mode: preserve
+  when: inventory_hostname == "nodo1"
+
+- name: Arrancar monitorización del nodo1
+  ansible.builtin.command:
+    cmd: docker compose up -d node-exporter-nodo1 cadvisor-nodo1 hdfs-exporter prometheus grafana alertmanager
+    chdir: "{{ proyecto }}"
+  when:
+    - monitoring_only | default(false) | bool
+    - inventory_hostname == "nodo1"
+
+- name: Arrancar exportadores del nodo2
+  ansible.builtin.command:
+    cmd: docker compose up -d node-exporter-nodo2 cadvisor-nodo2
+    chdir: "{{ proyecto }}"
+  when:
+    - monitoring_only | default(false) | bool
+    - inventory_hostname == "nodo2"
+
+- name: Arrancar exportadores del nodo3
+  ansible.builtin.command:
+    cmd: docker compose up -d node-exporter-nodo3 cadvisor-nodo3
+    chdir: "{{ proyecto }}"
+  when:
+    - monitoring_only | default(false) | bool
+    - inventory_hostname == "nodo3"

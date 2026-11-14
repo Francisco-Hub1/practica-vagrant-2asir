@@ -1,0 +1,52 @@
+---
+- name: Crear directorio del proyecto
+  ansible.builtin.file:
+    path: "{{ proyecto }}"
+    state: directory
+    mode: "0755"
+
+- name: Crear directorio de datos del NameNode
+  ansible.builtin.file:
+    path: "{{ proyecto }}/namenode"
+    state: directory
+    mode: "0777"
+  when: inventory_hostname == "nodo1"
+
+- name: Crear directorio de datos del DataNode
+  ansible.builtin.file:
+    path: "{{ proyecto }}/datanode"
+    state: directory
+    mode: "0777"
+  when: inventory_hostname in ["nodo2", "nodo3"]
+
+- name: Copiar Docker Compose
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../docker-compose.yml"
+    dest: "{{ proyecto }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Copiar configuración Hadoop
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../hadoop.env"
+    dest: "{{ proyecto }}/hadoop.env"
+    mode: "0644"
+
+- name: Copiar programa Spark
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../reparto.py"
+    dest: "{{ proyecto }}/reparto.py"
+    mode: "0644"
+
+- name: Crear directorio de configuración Spark en trabajadores
+  ansible.builtin.file:
+    path: "{{ proyecto }}/monitoring/spark"
+    state: directory
+    mode: "0755"
+  when: inventory_hostname in ["nodo2", "nodo3"]
+
+- name: Copiar configuración de métricas Spark a trabajadores
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/spark/metrics.properties"
+    dest: "{{ proyecto }}/monitoring/spark/metrics.properties"
+    mode: "0644"
+  when: inventory_hostname in ["nodo2", "nodo3"]

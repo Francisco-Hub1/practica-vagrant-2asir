@@ -1,5 +1,7 @@
-
 services:
+  # =========================
+  # HADOOP - NODO 1
+  # =========================
   namenode:
     profiles: ["nodo1"]
     image: apache/hadoop:3.3.6
@@ -24,6 +26,9 @@ services:
         exec hdfs namenode
     restart: unless-stopped
 
+  # =========================
+  # SPARK - MASTER
+  # =========================
   spark-master:
     profiles: ["nodo1"]
     image: apache/spark:3.5.3-python3
@@ -32,6 +37,8 @@ services:
     extra_hosts:
       - "spark-master:192.168.56.10"
     network_mode: host
+    environment:
+      SPARK_CONF_DIR: /opt/spark/conf
     command:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.master.Master
@@ -43,8 +50,12 @@ services:
       - "8080"
     volumes:
       - /opt/bigdata/reparto.py:/opt/spark-app/reparto.py:ro
+      - ./monitoring/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
     restart: unless-stopped
 
+  # =========================
+  # HADOOP - NODO 2
+  # =========================
   datanode1:
     profiles: ["nodo2"]
     image: apache/hadoop:3.3.6
@@ -61,7 +72,7 @@ services:
     restart: unless-stopped
 
   spark-worker1:
-    profiles: ["nodo2"]
+    profiles: ["spark-worker1-manual"]
     image: apache/spark:3.5.3-python3
     container_name: spark-worker1
     hostname: spark-worker1
@@ -69,6 +80,8 @@ services:
       - "spark-worker1:192.168.56.11"
       - "spark-master:192.168.56.10"
     network_mode: host
+    environment:
+      SPARK_CONF_DIR: /opt/spark/conf
     command:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.worker.Worker
@@ -83,8 +96,13 @@ services:
       - 1g
       - --cores
       - "1"
+    volumes:
+      - ./monitoring/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
     restart: unless-stopped
 
+  # =========================
+  # HADOOP - NODO 3
+  # =========================
   datanode2:
     profiles: ["nodo3"]
     image: apache/hadoop:3.3.6
@@ -101,7 +119,7 @@ services:
     restart: unless-stopped
 
   spark-worker2:
-    profiles: ["nodo3"]
+    profiles: ["spark-worker2-manual"]
     image: apache/spark:3.5.3-python3
     container_name: spark-worker2
     hostname: spark-worker2
@@ -109,6 +127,8 @@ services:
       - "spark-worker2:192.168.56.12"
       - "spark-master:192.168.56.10"
     network_mode: host
+    environment:
+      SPARK_CONF_DIR: /opt/spark/conf
     command:
       - /opt/spark/bin/spark-class
       - org.apache.spark.deploy.worker.Worker
@@ -123,8 +143,194 @@ services:
       - 1g
       - --cores
       - "1"
+    volumes:
+      - ./monitoring/spark/metrics.properties:/opt/spark/conf/metrics.properties:ro
     restart: unless-stopped
+
+  # =========================
+  # NODE EXPORTER - LOS 3 NODOS
+  # =========================
+  node-exporter-nodo1:
+    profiles: ["nodo1"]
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter-nodo1
+    network_mode: host
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --web.listen-address=:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
+  node-exporter-nodo2:
+    profiles: ["nodo2"]
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter-nodo2
+    network_mode: host
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --web.listen-address=:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
+  node-exporter-nodo3:
+    profiles: ["nodo3"]
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter-nodo3
+    network_mode: host
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --web.listen-address=:9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
+  # =========================
+  # CADVISOR - LOS 3 NODOS
+  # =========================
+  cadvisor-nodo1:
+    profiles: ["nodo1"]
+    image: ghcr.io/google/cadvisor:v0.60.5
+    container_name: cadvisor-nodo1
+    network_mode: host
+    privileged: true
+    command:
+      - --port=8085
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+
+  cadvisor-nodo2:
+    profiles: ["nodo2"]
+    image: ghcr.io/google/cadvisor:v0.60.5
+    container_name: cadvisor-nodo2
+    network_mode: host
+    privileged: true
+    command:
+      - --port=8085
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+
+  cadvisor-nodo3:
+    profiles: ["nodo3"]
+    image: ghcr.io/google/cadvisor:v0.60.5
+    container_name: cadvisor-nodo3
+    network_mode: host
+    privileged: true
+    command:
+      - --port=8085
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+
+  # =========================
+  # EXPORTER HDFS
+  # =========================
+  hdfs-exporter:
+    profiles: ["nodo1"]
+    image: python:3.12.8-slim
+    container_name: hdfs-exporter
+    command: ["python", "/app/hdfs-exporter.py"]
+    volumes:
+      - ./monitoring/hdfs-exporter.py:/app/hdfs-exporter.py:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # =========================
+  # PROMETHEUS
+  # =========================
+  prometheus:
+    profiles: ["nodo1"]
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # =========================
+  # GRAFANA
+  # =========================
+  grafana:
+    profiles: ["nodo1"]
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # =========================
+  # ALERTMANAGER
+  # =========================
+  alertmanager:
+    profiles: ["nodo1"]
+    image: prom/alertmanager:v0.28.0
+    container_name: alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
 
 volumes:
   datanode1-data:
   datanode2-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:

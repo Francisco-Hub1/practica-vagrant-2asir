@@ -1,0 +1,42 @@
+groups:
+  - name: infraestructura
+    rules:
+      # 1. Detectar servicios o exporters caídos
+      - alert: ServicioCaido
+        expr: up{job=~"node_exporter|cadvisor|spark_master|spark_worker1|spark_worker2|hdfs"} == 0
+        for: 2m
+        labels:
+          severity: critica
+        annotations:
+          summary: "Servicio o exporter caído"
+          description: "El objetivo {{ $labels.instance }} del trabajo {{ $labels.job }} no responde. Comprobar que la máquina está encendida y que el contenedor o servicio correspondiente está funcionando."
+
+      # 2. Detectar DataNodes insuficientes
+      - alert: DataNodesInsuficientes
+        expr: hdfs_NumLiveDataNodes < 2
+        for: 2m
+        labels:
+          severity: critica
+        annotations:
+          summary: "Hay menos de dos DataNodes activos"
+          description: "HDFS tiene menos de dos DataNodes activos. Comprobar los contenedores datanode1 y datanode2 y la conectividad con el NameNode."
+
+      # 3. Detectar bloques sin replicar
+      - alert: BloquesSinReplicar
+        expr: hdfs_UnderReplicatedBlocks > 0
+        for: 5m
+        labels:
+          severity: aviso
+        annotations:
+          summary: "Hay bloques HDFS sin replicar correctamente"
+          description: "Existen bloques pendientes de replicación durante más de cinco minutos. Comprobar el estado de los DataNodes y la replicación de HDFS."
+
+      # 4. Predecir si el disco se llenará en menos de 24 horas
+      - alert: DiscoSeLlenara
+        expr: predict_linear(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}[6h], 86400) < 0
+        for: 10m
+        labels:
+          severity: aviso
+        annotations:
+          summary: "El disco podría llenarse en menos de 24 horas"
+          description: "La proyección del espacio disponible indica que el disco podría agotarse en menos de 24 horas. Comprobar el uso del disco y los archivos que están ocupando espacio."

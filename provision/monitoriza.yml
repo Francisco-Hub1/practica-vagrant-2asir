@@ -1,0 +1,11 @@
+---
+- name: Desplegar o actualizar únicamente la monitorización
+  hosts: all
+  become: true
+
+  vars:
+    proyecto: /opt/bigdata
+    monitoring_only: true
+
+  roles:
+    - monitoring

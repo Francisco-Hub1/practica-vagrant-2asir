@@ -1,122 +1,13 @@
-
 ---
-- name: Desplegar infraestructura Big Data
+- name: Desplegar infraestructura Big Data y monitorización
   hosts: all
   become: true
 
   vars:
     proyecto: /opt/bigdata
 
-  tasks:
-    - name: Actualizar paquetes
-      ansible.builtin.apt:
-        update_cache: true
-        cache_valid_time: 3600
-
-    - name: Instalar dependencias
-      ansible.builtin.apt:
-        name:
-          - ca-certificates
-          - curl
-        state: present
-
-    - name: Crear directorio para claves
-      ansible.builtin.file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: "0755"
-
-    - name: Descargar clave oficial de Docker
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: "0644"
-
-    - name: Obtener arquitectura
-      ansible.builtin.command: dpkg --print-architecture
-      register: arquitectura
-      changed_when: false
-
-    - name: Obtener version de Ubuntu
-      ansible.builtin.shell: . /etc/os-release && echo "$VERSION_CODENAME"
-      register: version_ubuntu
-      changed_when: false
-
-    - name: Configurar repositorio de Docker
-      ansible.builtin.apt_repository:
-        repo: "deb [arch={{ arquitectura.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ version_ubuntu.stdout }} stable"
-        filename: docker
-        state: present
-        update_cache: true
-
-    - name: Instalar Docker y Docker Compose
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
-        state: present
-
-    - name: Activar Docker
-      ansible.builtin.service:
-        name: docker
-        state: started
-        enabled: true
-
-    - name: Crear directorio del proyecto
-      ansible.builtin.file:
-        path: "{{ proyecto }}"
-        state: directory
-        mode: "0755"
-
-    - name: Crear directorio de datos del NameNode
-      ansible.builtin.file:
-        path: "{{ proyecto }}/namenode"
-        state: directory
-        mode: "0777"
-      when: inventory_hostname == "nodo1"
-
-    - name: Crear directorio de datos del DataNode
-      ansible.builtin.file:
-        path: "{{ proyecto }}/datanode"
-        state: directory
-        mode: "0777"
-      when: inventory_hostname in ["nodo2", "nodo3"]
-
-    - name: Copiar Docker Compose
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../docker-compose.yml"
-        dest: "{{ proyecto }}/docker-compose.yml"
-        mode: "0644"
-
-    - name: Copiar configuracion Hadoop
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../hadoop.env"
-        dest: "{{ proyecto }}/hadoop.env"
-        mode: "0644"
-
-    - name: Copiar programa Spark
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../reparto.py"
-        dest: "{{ proyecto }}/reparto.py"
-        mode: "0644"
-
-    - name: Arrancar servicios del nodo1
-      ansible.builtin.command:
-        cmd: docker compose --profile nodo1 up -d
-        chdir: "{{ proyecto }}"
-      when: inventory_hostname == "nodo1"
-
-    - name: Arrancar servicios del nodo2
-      ansible.builtin.command:
-        cmd: docker compose --profile nodo2 up -d
-        chdir: "{{ proyecto }}"
-      when: inventory_hostname == "nodo2"
-
-    - name: Arrancar servicios del nodo3
-      ansible.builtin.command:
-        cmd: docker compose --profile nodo3 up -d
-        chdir: "{{ proyecto }}"
-      when: inventory_hostname == "nodo3"
+  roles:
+    - docker
+    - bigdata
+    - monitoring
+    - servicios

@@ -1,0 +1,50 @@
+---
+- name: Arrancar servicios del nodo1
+  ansible.builtin.command:
+    cmd: docker compose --profile nodo1 up -d
+    chdir: "{{ proyecto }}"
+  when: inventory_hostname == "nodo1"
+
+- name: Comprobar si spark-worker1 existe
+  ansible.builtin.command:
+    cmd: docker inspect spark-worker1
+  register: spark_worker1_existe
+  failed_when: false
+  changed_when: false
+  when: inventory_hostname == "nodo2"
+
+- name: Crear spark-worker1 solamente si no existe
+  ansible.builtin.command:
+    cmd: docker compose --profile spark-worker1-manual up -d spark-worker1
+    chdir: "{{ proyecto }}"
+  when:
+    - inventory_hostname == "nodo2"
+    - spark_worker1_existe.rc != 0
+
+- name: Arrancar los demás servicios del nodo2
+  ansible.builtin.command:
+    cmd: docker compose --profile nodo2 up -d
+    chdir: "{{ proyecto }}"
+  when: inventory_hostname == "nodo2"
+
+- name: Comprobar si spark-worker2 existe
+  ansible.builtin.command:
+    cmd: docker inspect spark-worker2
+  register: spark_worker2_existe
+  failed_when: false
+  changed_when: false
+  when: inventory_hostname == "nodo3"
+
+- name: Crear spark-worker2 solamente si no existe
+  ansible.builtin.command:
+    cmd: docker compose --profile spark-worker2-manual up -d spark-worker2
+    chdir: "{{ proyecto }}"
+  when:
+    - inventory_hostname == "nodo3"
+    - spark_worker2_existe.rc != 0
+
+- name: Arrancar los demás servicios del nodo3
+  ansible.builtin.command:
+    cmd: docker compose --profile nodo3 up -d
+    chdir: "{{ proyecto }}"
+  when: inventory_hostname == "nodo3"

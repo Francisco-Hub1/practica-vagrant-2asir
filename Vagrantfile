@@ -1,12 +1,8 @@
 
-
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Practica 1 - Infraestructura Big Data
-# nodo1: Master
-# nodo2: Worker 1
-# nodo3: Worker 2
+# Practica 1 y 2 - Infraestructura Big Data y monitorizacion
 
 CAJA = "bento/ubuntu-24.04"
 
@@ -20,11 +16,6 @@ Vagrant.configure("2") do |config|
   config.vm.box = CAJA
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  config.vm.provider "virtualbox" do |vb|
-    vb.memory = 2048
-    vb.cpus = 2
-  end
-
   NODOS.each do |n|
     config.vm.define n[:nombre] do |nodo|
       nodo.vm.hostname = n[:nombre]
@@ -32,13 +23,18 @@ Vagrant.configure("2") do |config|
 
       nodo.vm.provider "virtualbox" do |vb|
         vb.name = "bigdata-#{n[:nombre]}"
-      end
-
-      nodo.vm.provision "ansible" do |ansible|
-        ansible.playbook = "provision/site.yml"
-        ansible.compatibility_mode = "2.0"
+        vb.memory = (n[:nombre] == "nodo1") ? 4096 : 2048
+        vb.cpus = 2
       end
     end
+  end
+
+  # Ejecutar Ansible una vez con los tres nodos disponibles
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "provision/site.yml"
+    ansible.compatibility_mode = "2.0"
+    ansible.limit = "all"
+    ansible.host_key_checking = false
   end
 end
 
