@@ -492,3 +492,12 @@ Para recibir alertas de Telegram en una instalación nueva:
 5. Reiniciar Alertmanager para aplicar los cambios.
 
 El token se excluye del repositorio mediante `.gitignore`.
+
+---
+
+## 12. Repositorio del proyecto en GitHub
+
+El código fuente, los playbooks de Ansible, los roles, los archivos de configuración, las reglas de alerta y el dashboard de Grafana están disponibles en el siguiente repositorio:
+
+**[Acceder al repositorio GitHub – Práctica 2](https://github.com/Francisco-Hub1/practica-vagrant-2asir/tree/main)**
+
